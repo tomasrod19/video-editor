@@ -1,0 +1,1 @@
+Video editor that makes video editing for Youtube, tiktok, reels etc. way faster. Aiming to be able to directly upload to them and additionally edit videos using text prompts. (IE: "trim out all parts of video when there is a long pause of silence")
