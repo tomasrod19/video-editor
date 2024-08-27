@@ -1,4 +1,5 @@
-from moviepy.editor import VideoFileClip, concatenate_videoclips
+from moviepy.editor import VideoFileClip, concatenate_videoclips, CompositeVideoClip, TextClip
+
 from pydub import AudioSegment
 from pydub.silence import detect_nonsilent, detect_silence
 import os
@@ -23,6 +24,8 @@ def concatenate_videos(*video_paths):
     final_video.write_videofile(final_video_path)
 
 
+#grabs all noisy times in the video, makes list of them
+
 def mark_noisy_times(video_path):
     video = VideoFileClip(video_path)
     audio = video.audio
@@ -37,45 +40,37 @@ def mark_noisy_times(video_path):
     # Detect non-silent segments
     audio_segments = detect_nonsilent(audio_segment, min_silence_len=1000, silence_thresh=-30)
 
-    print(audio_segments)
-
-    noisy_times = []
-    for segment in audio_segments:
-        if segment[1] - segment[0] > 1000:
-            noisy_times.append(segment)
-
     # Clean up the temporary audio file
     os.remove(temp_audio_path)
 
-    print(noisy_times)  # Print the noisy_times variable
+    for sec in range(len(audio_segments)):
+        audio_segments[sec][0] -= 300
+        audio_segments[sec][1] += 300
 
     return audio_segments
 
+print(mark_noisy_times(videos[0]))
 
-'''Trimmed silences from the video'''
+# Trim the video based on the noisy segments
 
-times = mark_noisy_times(videos[0])
+def trim_video_based_on_noise(video_path):
+    noisy_segments = mark_noisy_times(video_path)
+    video_clips = []
+    video = VideoFileClip(video_path)
 
-times_seconds = [(start / 1000, end / 1000) for start, end in times]
+    for segment in noisy_segments:
+        start_time = segment[0] / 1000  # Convert milliseconds to seconds
+        end_time = segment[1] / 1000  # Convert milliseconds to seconds
+        trimmed_video = video.subclip(start_time, end_time)
+        video_clips.append(trimmed_video)
 
+    final_video = concatenate_videoclips(video_clips)
+    final_video_path = os.path.join(video_folder, "trimmed_video.mp4")
+    final_video.write_videofile(final_video_path)
 
+# Example usage
 
-if os.path.exists(videos[0]):
-    trimmed_video = trim_video(videos[0], times_seconds[0][0], times_seconds[0][1])
-    trimmed_video2 = trim_video(videos[0], times_seconds[1][0], times_seconds[1][1])
-    trimmed_video_path = os.path.join(video_folder, "trimmed_video.mp4")
-    trimmed_video_path2 = os.path.join(video_folder, "trimmed_video2.mp4")
-    trimmed_video.write_videofile(trimmed_video_path)
-    trimmed_video2.write_videofile(trimmed_video_path2)
-else:
-    print("Video file not found.")
-
-videos.append(trimmed_video_path)
-videos.append(trimmed_video_path2)
-
-
-
-concatenate_videos(videos[3],videos[4])
+trim_video_based_on_noise(videos[0])
 
 
-
+#next function: subtitles on video
